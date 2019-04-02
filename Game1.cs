@@ -10,11 +10,17 @@ namespace SimCityScope
     public class Game1 : Game
     {
         GraphicsDeviceManager graphics;
-        SpriteBatch spriteBatch;
+        public SpriteBatch spriteBatch;
+
+        World world;
+
+        MouseState prevMS;
 
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
+            graphics.PreferredBackBufferWidth = 800;
+            graphics.PreferredBackBufferHeight = 800;
             Content.RootDirectory = "Content";
         }
 
@@ -26,7 +32,9 @@ namespace SimCityScope
         /// </summary>
         protected override void Initialize()
         {
-            // TODO: Add your initialization logic here
+            this.IsMouseVisible = true;
+
+            world = new World(20);
 
             base.Initialize();
         }
@@ -39,6 +47,8 @@ namespace SimCityScope
         {
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
+            GeometryDrawer.init(this);
+
 
             // TODO: use this.Content to load your game content here
         }
@@ -64,6 +74,15 @@ namespace SimCityScope
 
             // TODO: Add your update logic here
 
+            if (Mouse.GetState().LeftButton == ButtonState.Pressed && prevMS.LeftButton==ButtonState.Released)
+            {
+                int x = (Mouse.GetState().X - 20) / world.tilesize;
+                int y = (Mouse.GetState().Y - 20) / world.tilesize;
+                if(x>=0 && x<world.size && y>=0 && y<world.size)
+                    world.grid[x, y].active ^= true;
+            }
+
+            prevMS = Mouse.GetState();
             base.Update(gameTime);
         }
 
@@ -75,7 +94,27 @@ namespace SimCityScope
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            // TODO: Add your drawing code here
+            spriteBatch.Begin();
+            // draw grid
+            Vector2 start = new Vector2(20, 20);
+            for (int x = 0; x < world.size + 1; ++x)
+            {
+                GeometryDrawer.drawLine(start + new Vector2(x * world.tilesize, 0), start + new Vector2(x, world.size) * world.tilesize, Color.Black);   // vertical lines
+                GeometryDrawer.drawLine(start + new Vector2(0, x * world.tilesize), start + new Vector2(world.size, x) * world.tilesize, Color.Black);   // horizontal lines
+            }
+            // TODO: draw tiles
+            for (int x = 0; x < world.size; ++x)
+            {
+                for (int y = 0; y < world.size; ++y)
+                {
+                    if(world.grid[x,y].active)
+                    {
+                        Vector2 a = start + new Vector2(x, y) * world.tilesize;
+                        GeometryDrawer.fillRect(a.ToPoint(), world.tilesize, world.tilesize, Color.White);
+                    }
+                }
+            }
+            spriteBatch.End();
 
             base.Draw(gameTime);
         }
