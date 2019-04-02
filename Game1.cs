@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Input.Touch;
 
 namespace SimCityScope
 {
@@ -15,6 +16,9 @@ namespace SimCityScope
         World world;
 
         MouseState prevMS;
+        Vector2 camOffset;
+
+        SpriteFont font;
 
         public Game1()
         {
@@ -35,6 +39,7 @@ namespace SimCityScope
             this.IsMouseVisible = true;
 
             world = new World(20);
+            camOffset = new Vector2(20, 20);
 
             base.Initialize();
         }
@@ -51,6 +56,7 @@ namespace SimCityScope
 
 
             // TODO: use this.Content to load your game content here
+            font = Content.Load<SpriteFont>("testfont");
         }
 
         /// <summary>
@@ -72,15 +78,52 @@ namespace SimCityScope
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            // TODO: Add your update logic here
-
+            // mouse interaction
             if (Mouse.GetState().LeftButton == ButtonState.Pressed && prevMS.LeftButton==ButtonState.Released)
             {
-                int x = (Mouse.GetState().X - 20) / world.tilesize;
-                int y = (Mouse.GetState().Y - 20) / world.tilesize;
-                if(x>=0 && x<world.size && y>=0 && y<world.size)
-                    world.grid[x, y].active ^= true;
+                var pos = screenToWorld(Mouse.GetState().Position);
+                if (pos != null)
+                    world.grid[(int)pos?.X, (int)pos?.Y].active ^= true;
             }
+
+            // touch interaction
+            foreach(var touch in TouchPanel.GetState())
+            {
+                // You're looking for when they finish a drag, so only check
+                // released touches.
+                if (touch.State != TouchLocationState.Released)
+                    continue;
+
+                TouchLocation prevLoc;
+
+                // Sometimes TryGetPreviousLocation can fail. Bail out early if this happened
+                // or if the last state didn't move
+                if (!touch.TryGetPreviousLocation(out prevLoc) || prevLoc.State != TouchLocationState.Moved)
+                    continue;
+
+                var pos = screenToWorld(touch.Position.ToPoint());
+                if (pos != null)
+                    world.grid[(int)pos?.X, (int)pos?.Y].active ^= true;
+
+                // get your delta
+                //var delta = touch.Position - prevLoc.Position;
+
+                // Usually you don't want to do something if the user drags 1 pixel.
+                //if (delta.LengthSquared() < YOUR_DRAG_TOLERANCE)
+                //    continue;
+
+                //if (delta.X < 0 || delta.Y < 0)
+                //    return new RotateLeftCommand(_gameController);
+
+                //if (delta.X > 0 || delta.Y > 0)
+                //    return new RotateRightCommand(_gameController);
+            }
+
+            // move view
+            if (Keyboard.GetState().IsKeyDown(Keys.W)) camOffset.Y++;
+            if (Keyboard.GetState().IsKeyDown(Keys.A)) camOffset.X++;
+            if (Keyboard.GetState().IsKeyDown(Keys.S)) camOffset.Y--;
+            if (Keyboard.GetState().IsKeyDown(Keys.D)) camOffset.X--;
 
             prevMS = Mouse.GetState();
             base.Update(gameTime);
@@ -96,27 +139,41 @@ namespace SimCityScope
 
             spriteBatch.Begin();
             // draw grid
-            Vector2 start = new Vector2(20, 20);
             for (int x = 0; x < world.size + 1; ++x)
             {
-                GeometryDrawer.drawLine(start + new Vector2(x * world.tilesize, 0), start + new Vector2(x, world.size) * world.tilesize, Color.Black);   // vertical lines
-                GeometryDrawer.drawLine(start + new Vector2(0, x * world.tilesize), start + new Vector2(world.size, x) * world.tilesize, Color.Black);   // horizontal lines
+                GeometryDrawer.drawLine(camOffset + new Vector2(x * world.tilesize, 0), camOffset + new Vector2(x, world.size) * world.tilesize, Color.Black);   // vertical lines
+                GeometryDrawer.drawLine(camOffset + new Vector2(0, x * world.tilesize), camOffset + new Vector2(world.size, x) * world.tilesize, Color.Black);   // horizontal lines
             }
-            // TODO: draw tiles
+            // draw tiles
             for (int x = 0; x < world.size; ++x)
             {
                 for (int y = 0; y < world.size; ++y)
                 {
                     if(world.grid[x,y].active)
                     {
-                        Vector2 a = start + new Vector2(x, y) * world.tilesize;
+                        Vector2 a = camOffset + new Vector2(x, y) * world.tilesize;
                         GeometryDrawer.fillRect(a.ToPoint(), world.tilesize, world.tilesize, Color.White);
                     }
                 }
             }
+
+            // todo: draw interface
+
+            // draw debug output
+            spriteBatch.DrawString(font, TouchPanel.GetState().Count.ToString(), Vector2.One, Color.White);
+
             spriteBatch.End();
 
             base.Draw(gameTime);
+        }
+
+        Vector2? screenToWorld(Point screenPos)
+        {
+            int x = (screenPos.X - (int)camOffset.X) / world.tilesize;
+            int y = (screenPos.Y - (int)camOffset.Y) / world.tilesize;
+            if (x >= 0 && x < world.size && y >= 0 && y < world.size)
+                return new Vector2(x, y);
+            else return null;
         }
     }
 }
