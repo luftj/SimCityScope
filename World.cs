@@ -6,10 +6,18 @@ using System.Threading.Tasks;
 
 namespace SimCityScope
 {
+    enum TileType
+    {
+        NONE= 0,
+        ROAD,
+        COMM,
+        RES,
+    }
+
     struct Tile
     {
         public bool active;
-        
+        public TileType type;
     }
 
     class World

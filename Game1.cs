@@ -2,9 +2,35 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
+using System.Collections.Generic;
 
 namespace SimCityScope
 {
+    delegate void InterfaceDelegate();
+
+    class InterfaceElement
+    {
+        public static int size { get; } = 48;
+        public string name { get; }
+        public InterfaceDelegate action;
+
+        public InterfaceElement(string name, InterfaceDelegate action)
+        {
+            this.name = name;
+            this.action = action;
+        }
+    }
+
+    enum InterfaceState
+    {
+        NONE = 0,
+        ROAD,
+        COMM,
+        RES,
+
+        NUM_INTERFACESTATE
+    }
+
     /// <summary>
     /// This is the main type for your game.
     /// </summary>
@@ -19,13 +45,21 @@ namespace SimCityScope
         Vector2 camOffset;
 
         SpriteFont font;
+        int windowWidth = 800;
+        int windowHeight = 800;
+        int interfaceWidth = 50;
+
+        List<InterfaceElement> interfaceEls;
+        InterfaceState state;
 
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
-            graphics.PreferredBackBufferWidth = 800;
-            graphics.PreferredBackBufferHeight = 800;
+            graphics.PreferredBackBufferWidth = windowWidth;
+            graphics.PreferredBackBufferHeight = windowHeight;
             Content.RootDirectory = "Content";
+
+            interfaceEls = new List<InterfaceElement>();
         }
 
         /// <summary>
@@ -41,6 +75,12 @@ namespace SimCityScope
             world = new World(20);
             camOffset = new Vector2(20, 20);
 
+            interfaceEls.Add(new InterfaceElement("", null ));
+            interfaceEls.Add(new InterfaceElement("remove", delegate () { state = InterfaceState.NONE; }));
+            interfaceEls.Add(new InterfaceElement("road", delegate() { state = InterfaceState.ROAD; } ));
+            interfaceEls.Add(new InterfaceElement("commercial", delegate () { state = InterfaceState.COMM; }));
+            interfaceEls.Add(new InterfaceElement("residential", delegate () { state = InterfaceState.RES; }));
+
             base.Initialize();
         }
 
@@ -55,7 +95,7 @@ namespace SimCityScope
             GeometryDrawer.init(this);
 
 
-            // TODO: use this.Content to load your game content here
+            // use this.Content to load game content here
             font = Content.Load<SpriteFont>("testfont");
         }
 
@@ -78,12 +118,43 @@ namespace SimCityScope
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
+            MouseState mouse = Mouse.GetState();
             // mouse interaction
-            if (Mouse.GetState().LeftButton == ButtonState.Pressed && prevMS.LeftButton==ButtonState.Released)
+            if (Mouse.GetState().LeftButton == ButtonState.Pressed && (state==InterfaceState.ROAD || prevMS.LeftButton==ButtonState.Released))
             {
+                // todo: get interface click
+                if(mouse.Position.X<interfaceWidth)
+                {
+                    int idx = mouse.Position.Y / interfaceWidth;
+                    if (idx < interfaceEls.Count)
+                    {
+                        InterfaceElement selected = interfaceEls[idx];
+                        selected.action?.Invoke();
+                    }
+                }
+
                 var pos = screenToWorld(Mouse.GetState().Position);
                 if (pos != null)
-                    world.grid[(int)pos?.X, (int)pos?.Y].active ^= true;
+                {
+                    TileType newTile = TileType.NONE;
+                    switch(state)
+                    {
+                        case InterfaceState.NONE:
+                            newTile = TileType.NONE;
+                            break;
+                        case InterfaceState.ROAD:
+                            newTile = TileType.ROAD;
+                            break;
+                        case InterfaceState.COMM:
+                            newTile = TileType.COMM;
+                            break;
+                        case InterfaceState.RES:
+                            newTile = TileType.RES;
+                            break;
+                    }
+                    //world.grid[(int)pos?.X, (int)pos?.Y].active ^= true;
+                    world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
+                }
             }
 
             // touch interaction
@@ -149,18 +220,40 @@ namespace SimCityScope
             {
                 for (int y = 0; y < world.size; ++y)
                 {
-                    if(world.grid[x,y].active)
-                    {
+                    //if(world.grid[x,y].active)
+                    //{
                         Vector2 a = camOffset + new Vector2(x, y) * world.tilesize;
-                        GeometryDrawer.fillRect(a.ToPoint(), world.tilesize, world.tilesize, Color.White);
-                    }
+                        Color newCol = Color.Transparent;
+                        switch(world.grid[x,y].type)
+                        {
+                            case TileType.ROAD:
+                                newCol = Color.LightGray;
+                                break;
+                            case TileType.COMM:
+                                newCol = Color.Blue;
+                                break;
+                            case TileType.RES:
+                                newCol = Color.Green;
+                                break;
+                        }
+                        GeometryDrawer.fillRect(a.ToPoint(), world.tilesize, world.tilesize, newCol);
+                    //}
                 }
             }
 
             // todo: draw interface
+            GeometryDrawer.fillRect(Point.Zero, interfaceWidth, windowHeight, Color.Gray);
+            Vector2 pos = Vector2.Zero;
+            for ( int i=0;i< interfaceEls.Count;++i)
+            {
+                spriteBatch.DrawString(font, interfaceEls[i].name, pos + Vector2.UnitY * interfaceWidth / 2.0f, Color.White);
+                pos.Y += interfaceWidth;
+                GeometryDrawer.drawLine(pos, pos + Vector2.UnitX * (interfaceWidth+10), Color.Red);
+            }
+
 
             // draw debug output
-            spriteBatch.DrawString(font, TouchPanel.GetState().Count.ToString(), Vector2.One, Color.White);
+            spriteBatch.DrawString(font, state.ToString(), Vector2.One, Color.White);
 
             spriteBatch.End();
 
@@ -169,6 +262,7 @@ namespace SimCityScope
 
         Vector2? screenToWorld(Point screenPos)
         {
+            if (screenPos.X < interfaceWidth) return null;
             int x = (screenPos.X - (int)camOffset.X) / world.tilesize;
             int y = (screenPos.Y - (int)camOffset.Y) / world.tilesize;
             if (x >= 0 && x < world.size && y >= 0 && y < world.size)
