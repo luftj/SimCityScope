@@ -1,6 +1,6 @@
 # The SimCityScope
 
-This project brings simulation to the CityScope-platform. With interactivity, flashy colours and magic.
+This project brings simulation to the [CityScope](https://github.com/CityScope/)-platform. With interactivity, flashy colours and magic.
 
 ## Getting Started
 
@@ -40,20 +40,10 @@ Add additional notes about how to deploy this on a live system
 
 ## Built With
 
-
-## Contributing
-
-Please read [CONTRIBUTING.md]() for details on our code of conduct, and the process for submitting pull requests to us.
-
 ## Authors
 
-* 
+* [Me](https://github.com/luftj). Give me a shout!
 
-See also the list of [contributors]() who participated in this project.
-
-## License
-
-This project is licensed under ... - see the [LICENSE.md](LICENSE.md) file for details
 
 ## Acknowledgments
 

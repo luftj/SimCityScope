@@ -24,12 +24,13 @@ namespace SimCityScope
 
     enum InterfaceState
     {
-        NONE = 0,
+        REMOVE,
         ROAD,
         COMM,
         RES,
 
-        NUM_INTERFACESTATE
+        NUM_INTERFACESTATE,
+        NONE =0
     }
 
     class Interface

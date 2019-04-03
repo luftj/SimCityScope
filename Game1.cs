@@ -28,6 +28,8 @@ namespace SimCityScope
         Vector2 camOffset;
         List<InterfaceElement> interfaceElements;
         InterfaceState state;
+
+        Point? dragStart = null;
         #endregion
 
         public Game1()
@@ -53,11 +55,11 @@ namespace SimCityScope
             this.IsMouseVisible = true;
 
             world = new World(20);
-            camOffset = new Vector2(20, 20);
+            camOffset = new Vector2(90, 20);
 
-            interfaceElements.Add(new InterfaceElement("", null ));
-            interfaceElements.Add(new InterfaceElement("remove", delegate () { state = InterfaceState.NONE; }));
-            interfaceElements.Add(new InterfaceElement("road", delegate() { state = InterfaceState.ROAD; } ));
+            interfaceElements.Add(new InterfaceElement("", null));
+            interfaceElements.Add(new InterfaceElement("remove", delegate () { state = InterfaceState.REMOVE; }));
+            interfaceElements.Add(new InterfaceElement("road", delegate () { state = InterfaceState.ROAD; }));
             interfaceElements.Add(new InterfaceElement("commercial", delegate () { state = InterfaceState.COMM; }));
             interfaceElements.Add(new InterfaceElement("residential", delegate () { state = InterfaceState.RES; }));
 
@@ -117,10 +119,66 @@ namespace SimCityScope
 
             MouseState mouse = Mouse.GetState();
             // mouse interaction
-            if (Mouse.GetState().LeftButton == ButtonState.Pressed && (state==InterfaceState.ROAD || prevMS.LeftButton==ButtonState.Released))
+            if (mouse.LeftButton == ButtonState.Pressed && prevMS.LeftButton == ButtonState.Released)
             {
-                // todo: get interface click
-                if(mouse.Position.X<InterfaceElement.width)
+                var pos = screenToWorld(Mouse.GetState().Position);
+                if (pos != null)
+                    dragStart = mouse.Position;
+                else
+                    dragStart = null;
+            }
+
+            if (mouse.LeftButton == ButtonState.Released && prevMS.LeftButton == ButtonState.Pressed)
+            {
+                TileType newTile = TileType.NONE;
+                switch (state)
+                {
+                    case InterfaceState.REMOVE:
+                        newTile = TileType.NONE;
+                        break;
+                    case InterfaceState.COMM:
+                        newTile = TileType.COMM;
+                        break;
+                    case InterfaceState.RES:
+                        newTile = TileType.RES;
+                        break;
+                }
+                var pos = screenToWorld(mouse.Position);
+                if (pos != null)
+                {
+                    if (dragStart != null)
+                    {
+                        // fill rect
+                        var startpos = screenToWorld(dragStart.Value);
+
+                        var xmin = MathHelper.Min(startpos.Value.X, pos.Value.X);
+                        var xmax = MathHelper.Max(startpos.Value.X, pos.Value.X);
+                        var ymin = MathHelper.Min(startpos.Value.Y, pos.Value.Y);
+                        var ymax = MathHelper.Max(startpos.Value.Y, pos.Value.Y);
+
+                        for (int x = (int)xmin; x <= xmax; ++x)
+                        {
+                            for (int y = (int)ymin; y <= ymax; ++y)
+                            {
+                                if (world.grid[x, y].type == TileType.NONE)
+                                    world.grid[x, y].type = newTile;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // fill single tile
+
+                        world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
+                    }
+                }
+                dragStart = null;
+            }
+
+            if (mouse.LeftButton == ButtonState.Pressed && (state == InterfaceState.ROAD || prevMS.LeftButton == ButtonState.Released))
+            {
+                // get interface click
+                if (mouse.Position.X < InterfaceElement.width)
                 {
                     int idx = mouse.Position.Y / InterfaceElement.height;
                     if (idx < interfaceElements.Count && idx >= 0)
@@ -133,29 +191,24 @@ namespace SimCityScope
                 var pos = screenToWorld(Mouse.GetState().Position);
                 if (pos != null)
                 {
-                    TileType newTile = TileType.NONE;
-                    switch(state)
+                    TileType? newTile = null;
+                    switch (state)
                     {
-                        case InterfaceState.NONE:
+                        case InterfaceState.REMOVE:
                             newTile = TileType.NONE;
                             break;
                         case InterfaceState.ROAD:
                             newTile = TileType.ROAD;
                             break;
-                        case InterfaceState.COMM:
-                            newTile = TileType.COMM;
-                            break;
-                        case InterfaceState.RES:
-                            newTile = TileType.RES;
-                            break;
                     }
-                    //world.grid[(int)pos?.X, (int)pos?.Y].active ^= true;
-                    world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
+
+                    if (newTile != null)
+                        world.grid[(int)pos?.X, (int)pos?.Y].type = newTile.Value;
                 }
             }
 
             // touch interaction
-            foreach(var touch in TouchPanel.GetState())
+            foreach (var touch in TouchPanel.GetState())
             {
                 // You're looking for when they finish a drag, so only check
                 // released touches.
@@ -205,7 +258,7 @@ namespace SimCityScope
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            spriteBatch.Begin();
+            spriteBatch.Begin(blendState: BlendState.AlphaBlend);
             // draw grid
             for (int x = 0; x < world.size + 1; ++x)
             {
@@ -217,11 +270,9 @@ namespace SimCityScope
             {
                 for (int y = 0; y < world.size; ++y)
                 {
-                    //if(world.grid[x,y].active)
-                    //{
                     Vector2 a = camOffset + new Vector2(x, y) * world.tilesize;
                     Color newCol = Color.Transparent;
-                    switch(world.grid[x,y].type)
+                    switch (world.grid[x, y].type)
                     {
                         case TileType.ROAD:
                             newCol = Color.LightGray;
@@ -240,22 +291,30 @@ namespace SimCityScope
                     }
                     else
                         GeometryDrawer.fillRect(a.ToPoint(), world.tilesize, world.tilesize, newCol);
-                    //}
                 }
             }
 
             // draw interface
             GeometryDrawer.fillRect(Point.Zero, InterfaceElement.width, windowHeight, Color.Gray);
             Vector2 pos = Vector2.Zero;
-            for ( int i=0;i< interfaceElements.Count;++i)
+            for (int i = 0; i < interfaceElements.Count; ++i)
             {
-                if(interfaceElements[i].name != "")
-                    spriteBatch.Draw(sprites[interfaceElements[i].name],pos,Color.White);
+                if (interfaceElements[i].name != "")
+                    spriteBatch.Draw(sprites[interfaceElements[i].name], pos, Color.White);
                 //spriteBatch.DrawString(font, interfaceEls[i].name, pos + Vector2.UnitY * interfaceWidth / 2.0f, Color.White);
                 pos.Y += InterfaceElement.height;
                 //GeometryDrawer.drawLine(pos, pos + Vector2.UnitX * (interfaceWidth+10), Color.Red);
             }
 
+            // draw cursor/selector
+            if (dragStart != null && (state == InterfaceState.COMM || state == InterfaceState.RES))
+            {
+                var xmin = MathHelper.Min(dragStart.Value.X, Mouse.GetState().Position.X);
+                var xmax = MathHelper.Max(dragStart.Value.X, Mouse.GetState().Position.X);
+                var ymin = MathHelper.Min(dragStart.Value.Y, Mouse.GetState().Position.Y);
+                var ymax = MathHelper.Max(dragStart.Value.Y, Mouse.GetState().Position.Y);
+                GeometryDrawer.fillRect(new Rectangle(xmin, ymin, xmax - xmin, ymax - ymin), Color.White * 0.5f);
+            }
 
             // draw debug output
             spriteBatch.DrawString(font, state.ToString(), Vector2.One, Color.White);
@@ -270,7 +329,7 @@ namespace SimCityScope
             string ret = "";
             if (y > 0 && world.grid[x, y - 1].type == type) ret += "N";
             if (x < world.size - 1 && world.grid[x + 1, y].type == type) ret += "E";
-            if (y < world.size - 1 &&  world.grid[x, y + 1].type == type) ret += "S";
+            if (y < world.size - 1 && world.grid[x, y + 1].type == type) ret += "S";
             if (x > 0 && world.grid[x - 1, y].type == type) ret += "W";
 
             if (ret == "" || ret == "N" || ret == "S") ret = "NS";
