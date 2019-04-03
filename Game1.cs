@@ -10,7 +10,8 @@ namespace SimCityScope
 
     class InterfaceElement
     {
-        public static int size { get; } = 48;
+        public static int width = 50;
+        public static int height = 50;
         public string name { get; }
         public InterfaceDelegate action;
 
@@ -44,6 +45,7 @@ namespace SimCityScope
         MouseState prevMS;
         Vector2 camOffset;
 
+        Dictionary<string, Texture2D> sprites;
         SpriteFont font;
         int windowWidth = 800;
         int windowHeight = 800;
@@ -58,6 +60,8 @@ namespace SimCityScope
             graphics.PreferredBackBufferWidth = windowWidth;
             graphics.PreferredBackBufferHeight = windowHeight;
             Content.RootDirectory = "Content";
+
+            sprites = new Dictionary<string, Texture2D>();
 
             interfaceEls = new List<InterfaceElement>();
         }
@@ -97,6 +101,23 @@ namespace SimCityScope
 
             // use this.Content to load game content here
             font = Content.Load<SpriteFont>("testfont");
+            sprites["remove"] = Content.Load<Texture2D>("bulldozer");
+            InterfaceElement.width = sprites["remove"].Width;
+            InterfaceElement.height = sprites["remove"].Height;
+            sprites["road"] = Content.Load<Texture2D>("road");
+            sprites["residential"] = Content.Load<Texture2D>("residential");
+            sprites["commercial"] = Content.Load<Texture2D>("commercial");
+            sprites["road_NS"] = Content.Load<Texture2D>("roads/NS");
+            sprites["road_EW"] = Content.Load<Texture2D>("roads/EW");
+            sprites["road_NE"] = Content.Load<Texture2D>("roads/NE");
+            sprites["road_ES"] = Content.Load<Texture2D>("roads/ES");
+            sprites["road_SW"] = Content.Load<Texture2D>("roads/SW");
+            sprites["road_NW"] = Content.Load<Texture2D>("roads/NW");
+            sprites["road_NES"] = Content.Load<Texture2D>("roads/NES");
+            sprites["road_ESW"] = Content.Load<Texture2D>("roads/ESW");
+            sprites["road_NSW"] = Content.Load<Texture2D>("roads/NSW");
+            sprites["road_NEW"] = Content.Load<Texture2D>("roads/NEW");
+            sprites["road_NESW"] = Content.Load<Texture2D>("roads/NESW");
         }
 
         /// <summary>
@@ -126,7 +147,7 @@ namespace SimCityScope
                 if(mouse.Position.X<interfaceWidth)
                 {
                     int idx = mouse.Position.Y / interfaceWidth;
-                    if (idx < interfaceEls.Count)
+                    if (idx < interfaceEls.Count && idx >= 0)
                     {
                         InterfaceElement selected = interfaceEls[idx];
                         selected.action?.Invoke();
@@ -222,32 +243,40 @@ namespace SimCityScope
                 {
                     //if(world.grid[x,y].active)
                     //{
-                        Vector2 a = camOffset + new Vector2(x, y) * world.tilesize;
-                        Color newCol = Color.Transparent;
-                        switch(world.grid[x,y].type)
-                        {
-                            case TileType.ROAD:
-                                newCol = Color.LightGray;
-                                break;
-                            case TileType.COMM:
-                                newCol = Color.Blue;
-                                break;
-                            case TileType.RES:
-                                newCol = Color.Green;
-                                break;
-                        }
+                    Vector2 a = camOffset + new Vector2(x, y) * world.tilesize;
+                    Color newCol = Color.Transparent;
+                    switch(world.grid[x,y].type)
+                    {
+                        case TileType.ROAD:
+                            newCol = Color.LightGray;
+                            break;
+                        case TileType.COMM:
+                            newCol = Color.Blue;
+                            break;
+                        case TileType.RES:
+                            newCol = Color.Green;
+                            break;
+                    }
+                    if (world.grid[x, y].type == TileType.ROAD)
+                    {
+                        string tile = "road_" + adjDir(x, y, TileType.ROAD);
+                        spriteBatch.Draw(sprites[tile], a, Color.White);
+                    }
+                    else
                         GeometryDrawer.fillRect(a.ToPoint(), world.tilesize, world.tilesize, newCol);
                     //}
                 }
             }
 
             // todo: draw interface
-            GeometryDrawer.fillRect(Point.Zero, interfaceWidth, windowHeight, Color.Gray);
+            GeometryDrawer.fillRect(Point.Zero, InterfaceElement.width, windowHeight, Color.Gray);
             Vector2 pos = Vector2.Zero;
             for ( int i=0;i< interfaceEls.Count;++i)
             {
-                spriteBatch.DrawString(font, interfaceEls[i].name, pos + Vector2.UnitY * interfaceWidth / 2.0f, Color.White);
-                pos.Y += interfaceWidth;
+                if(interfaceEls[i].name != "")
+                    spriteBatch.Draw(sprites[interfaceEls[i].name],pos,Color.White);
+                //spriteBatch.DrawString(font, interfaceEls[i].name, pos + Vector2.UnitY * interfaceWidth / 2.0f, Color.White);
+                pos.Y += InterfaceElement.height;
                 GeometryDrawer.drawLine(pos, pos + Vector2.UnitX * (interfaceWidth+10), Color.Red);
             }
 
@@ -258,6 +287,19 @@ namespace SimCityScope
             spriteBatch.End();
 
             base.Draw(gameTime);
+        }
+
+        string adjDir(int x, int y, TileType type)
+        {
+            string ret = "";
+            if (y > 0 && world.grid[x, y - 1].type == type) ret += "N";
+            if (x < world.size - 1 && world.grid[x + 1, y].type == type) ret += "E";
+            if (y < world.size - 1 &&  world.grid[x, y + 1].type == type) ret += "S";
+            if (x > 0 && world.grid[x - 1, y].type == type) ret += "W";
+
+            if (ret == "" || ret == "N" || ret == "S") ret = "NS";
+            if (ret == "E" || ret == "W") ret = "EW";
+            return ret;
         }
 
         Vector2? screenToWorld(Point screenPos)
