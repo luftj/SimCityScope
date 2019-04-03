@@ -11,8 +11,10 @@ Control
   - [X] mouse
   - [ ] touch
   - [X] draw rectangle
-- [ ] pause/continue
+- [ ] time
+  - [X] pause/continue
+  - [ ] faster/slower
 
 Model
-- [ ] keep time (ticks)
+- [X] keep time (ticks)
 - [ ] grow usage

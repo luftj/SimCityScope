@@ -1,6 +1,6 @@
 # The SimCityScope
 
-This project brings simulation to the [CityScope](https://github.com/CityScope/)-platform. With interactivity, flashy colours and magic.
+This project brings simulation to the [CityScope](https://github.com/CityScope/)-platform. With interactivity, flashy colours and magick.
 
 ## Getting Started
 

@@ -13,6 +13,13 @@ namespace SimCityScope
     {
         World world;
 
+        #region TIME
+        bool running = true;
+        int timeStep = 0; // total elapsed time steps
+        float speed = 2.0f; // seconds per time step
+        double stepTimer = 0.0f;
+        #endregion
+
         #region VIEW
         GraphicsDeviceManager graphics;
         public SpriteBatch spriteBatch;
@@ -24,6 +31,7 @@ namespace SimCityScope
         #endregion
 
         #region CONROL
+        KeyboardState prevKB;
         MouseState prevMS;
         Vector2 camOffset;
         List<InterfaceElement> interfaceElements;
@@ -57,11 +65,11 @@ namespace SimCityScope
             world = new World(20);
             camOffset = new Vector2(90, 20);
 
-            interfaceElements.Add(new InterfaceElement("", null));
-            interfaceElements.Add(new InterfaceElement("remove", delegate () { state = InterfaceState.REMOVE; }));
-            interfaceElements.Add(new InterfaceElement("road", delegate () { state = InterfaceState.ROAD; }));
-            interfaceElements.Add(new InterfaceElement("commercial", delegate () { state = InterfaceState.COMM; }));
-            interfaceElements.Add(new InterfaceElement("residential", delegate () { state = InterfaceState.RES; }));
+            interfaceElements.Add(new InterfaceElement("",              null));
+            interfaceElements.Add(new InterfaceElement("remove",        delegate () { state = InterfaceState.REMOVE; }));
+            interfaceElements.Add(new InterfaceElement("road",          delegate () { state = InterfaceState.ROAD; }));
+            interfaceElements.Add(new InterfaceElement("commercial",    delegate () { state = InterfaceState.COMM; }));
+            interfaceElements.Add(new InterfaceElement("residential",   delegate () { state = InterfaceState.RES; }));
 
             base.Initialize();
         }
@@ -116,6 +124,17 @@ namespace SimCityScope
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
+
+            // simulation steps
+            if(running)
+            {
+                stepTimer += gameTime.ElapsedGameTime.TotalSeconds;
+                if(stepTimer >= speed)
+                {
+                    timeStep++;
+                    stepTimer -= speed;
+                }
+            }
 
             MouseState mouse = Mouse.GetState();
             // mouse interaction
@@ -245,8 +264,10 @@ namespace SimCityScope
             if (Keyboard.GetState().IsKeyDown(Keys.A)) camOffset.X++;
             if (Keyboard.GetState().IsKeyDown(Keys.S)) camOffset.Y--;
             if (Keyboard.GetState().IsKeyDown(Keys.D)) camOffset.X--;
+            if (Keyboard.GetState().IsKeyDown(Keys.Space) && prevKB.IsKeyUp(Keys.Space)) running ^= true; // toggle simulation state
 
             prevMS = Mouse.GetState();
+            prevKB = Keyboard.GetState();
             base.Update(gameTime);
         }
 
@@ -317,7 +338,7 @@ namespace SimCityScope
             }
 
             // draw debug output
-            spriteBatch.DrawString(font, state.ToString(), Vector2.One, Color.White);
+            spriteBatch.DrawString(font, timeStep.ToString(), Vector2.One, Color.White);
 
             spriteBatch.End();
 
