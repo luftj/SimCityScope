@@ -65,11 +65,11 @@ namespace SimCityScope
             world = new World(20);
             camOffset = new Vector2(90, 20);
 
-            interfaceElements.Add(new InterfaceElement("",              null));
-            interfaceElements.Add(new InterfaceElement("remove",        delegate () { state = InterfaceState.REMOVE; }));
-            interfaceElements.Add(new InterfaceElement("road",          delegate () { state = InterfaceState.ROAD; }));
-            interfaceElements.Add(new InterfaceElement("commercial",    delegate () { state = InterfaceState.COMM; }));
-            interfaceElements.Add(new InterfaceElement("residential",   delegate () { state = InterfaceState.RES; }));
+            interfaceElements.Add(new InterfaceElement("", null));
+            interfaceElements.Add(new InterfaceElement("remove", delegate () { state = InterfaceState.REMOVE; }));
+            interfaceElements.Add(new InterfaceElement("road", delegate () { state = InterfaceState.ROAD; }));
+            interfaceElements.Add(new InterfaceElement("commercial", delegate () { state = InterfaceState.COMM; }));
+            interfaceElements.Add(new InterfaceElement("residential", delegate () { state = InterfaceState.RES; }));
 
             base.Initialize();
         }
@@ -116,6 +116,11 @@ namespace SimCityScope
             sprites["comm_3"] = Content.Load<Texture2D>("commercial_high/002");
             sprites["comm_4"] = Content.Load<Texture2D>("commercial_high/003");
             sprites["comm_5"] = Content.Load<Texture2D>("commercial_high/004");
+
+            sprites["cars_hor_0"] = Content.Load<Texture2D>("traffic/cars_hor");
+            sprites["cars_hor_1"] = Content.Load<Texture2D>("traffic/cars_hor2");
+            sprites["cars_ver_0"] = Content.Load<Texture2D>("traffic/cars_ver");
+            sprites["cars_ver_1"] = Content.Load<Texture2D>("traffic/cars_ver2");
         }
 
         /// <summary>
@@ -138,10 +143,10 @@ namespace SimCityScope
                 Exit();
 
             // simulation steps
-            if(running)
+            if (running)
             {
                 stepTimer += gameTime.ElapsedGameTime.TotalSeconds;
-                if(stepTimer >= speed)
+                if (stepTimer >= speed)
                 {
                     timeStep++;
                     stepTimer -= speed;
@@ -224,19 +229,16 @@ namespace SimCityScope
                 var pos = screenToWorld(Mouse.GetState().Position);
                 if (pos != null)
                 {
-                    TileType? newTile = null;
                     switch (state)
                     {
                         case InterfaceState.REMOVE:
-                            newTile = TileType.NONE;
+                            world.removeTile((int)pos?.X, (int)pos?.Y);
                             break;
                         case InterfaceState.ROAD:
-                            newTile = TileType.ROAD;
+                            world.grid[(int)pos?.X, (int)pos?.Y].type = TileType.ROAD;
                             break;
                     }
 
-                    if (newTile != null)
-                        world.grid[(int)pos?.X, (int)pos?.Y].type = newTile.Value;
                 }
             }
 
@@ -291,7 +293,7 @@ namespace SimCityScope
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            GraphicsDevice.Clear(new Color(176, 144, 112));
 
             spriteBatch.Begin(blendState: BlendState.AlphaBlend);
             // draw grid
@@ -323,25 +325,33 @@ namespace SimCityScope
                     {
                         string tile = "road_" + adjDir(x, y, TileType.ROAD);
                         spriteBatch.Draw(sprites[tile], a, Color.White);
+                        if (world.grid[x, y].value > 0)
+                        {
+                            if (tile == "road_NS")
+                                spriteBatch.Draw(sprites["cars_ver_" + timeStep % 2], a, Color.White);
+                            if (tile == "road_EW")
+                                spriteBatch.Draw(sprites["cars_hor_" + timeStep % 2], a, Color.White);
+                        }
                     }
                     else
                     {
-                        GeometryDrawer.fillRect(a.ToPoint(), world.tilesize, world.tilesize, newCol);
                         if (world.grid[x, y].value > 0)
                         {
                             var step = Tile.maxVal / 5;
-                            var lvl = world.grid[x, y].value / step +1;
+                            var lvl = world.grid[x, y].value / step + 1;
                             if (lvl > 5) lvl = 5;
 
-                            if (world.grid[x,y].type == TileType.RES)
-                                spriteBatch.Draw(texture: sprites["res_" + lvl],position: a, scale: new Vector2((float)world.tilesize/24.0f),color: Color.White, origin: new Vector2(0,8));
-                            
+                            if (world.grid[x, y].type == TileType.RES)
+                                spriteBatch.Draw(texture: sprites["res_" + lvl], position: a, scale: new Vector2((float)world.tilesize / 24.0f), color: Color.White, origin: new Vector2(0, 8));
+
                             else if (world.grid[x, y].type == TileType.COMM)
                                 spriteBatch.Draw(texture: sprites["comm_" + lvl], position: a, scale: new Vector2((float)world.tilesize / 24.0f), color: Color.White, origin: new Vector2(0, 8));
-                            
+
                             else
                                 spriteBatch.DrawString(font, world.grid[x, y].value.ToString(), a, Color.White);
                         }
+                        else
+                            GeometryDrawer.fillRect(a.ToPoint(), world.tilesize, world.tilesize, newCol);
                     }
                 }
             }

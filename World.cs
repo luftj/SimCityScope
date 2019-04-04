@@ -22,7 +22,7 @@ namespace SimCityScope
 
         public int value;
 
-        public static int maxVal = 30;
+        public static int maxVal { get; } = 30;
     }
 
     class World
@@ -54,8 +54,20 @@ namespace SimCityScope
                 growTile(TileType.RES, vacancies);
             else if (vacancies < 0)
                 growTile(TileType.COMM, -vacancies);
-            else
-                return;
+
+            // update traffic
+            List<Point> relevantTiles = new List<Point>();
+            for (var x = 1; x < size-1; ++x)
+                for (var y = 1; y < size-1; ++y)
+                {
+                    if (grid[x, y].type == TileType.ROAD)    // pick relevant type
+                    {
+                        if (grid[x - 1, y - 1].value > 0) grid[x, y].value = 1;
+                        if (grid[x + 1, y - 1].value > 0) grid[x, y].value = 1;
+                        if (grid[x - 1, y + 1].value > 0) grid[x, y].value = 1;
+                        if (grid[x + 1, y + 1].value > 0) grid[x, y].value = 1;
+                    }
+                }
         }
 
         public void growTile(TileType type, int amount)
@@ -83,7 +95,7 @@ namespace SimCityScope
             while (relevantTiles.Count > 0 && amountleft > 0)
             {
                 // pick at random
-                var cur = relevantTiles[rng.Next(relevantTiles.Count() - 1)];
+                var cur = relevantTiles[rng.Next(relevantTiles.Count())];
 
                 // grow
                 grid[cur.X, cur.Y].value++;
@@ -95,10 +107,21 @@ namespace SimCityScope
             }
         }
 
+        public void removeTile(int x, int y)
+        {
+            if (grid[x, y].type == TileType.RES)
+                population -= grid[x, y].value;
+            if (grid[x, y].type == TileType.COMM)
+                jobs -= grid[x, y].value;
+            grid[x, y].value = 0;
+            grid[x, y].type = TileType.NONE;
+        }
+
         bool checkVicinity(Point pos, TileType check, int range)
         {
-            for (var x = MathHelper.Max(pos.X - range, 0); x < MathHelper.Min(pos.X + range, size); ++x)
-                for (var y = MathHelper.Max(pos.Y - range, 0); y < MathHelper.Min(pos.Y + range, size); ++y)
+            // todo: proper manhattan distance
+            for (var x = MathHelper.Max(pos.X - range, 0); x < MathHelper.Min(pos.X + range +1, size); ++x)
+                for (var y = MathHelper.Max(pos.Y - range, 0); y < MathHelper.Min(pos.Y + range+1, size); ++y)
                 {
                     if (grid[x, y].type == check) return true;
                 }

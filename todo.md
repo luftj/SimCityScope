@@ -4,8 +4,8 @@ General
 - [ ] write sensible readme
 
 View
-- [ ] residential/commercial needs chart
-- [ ] visualise usage amount/growth
+- [ ] residential/commercial demand chart
+- [X] visualise usage amount/growth
 
 Control
 - [ ] rectangle zoning
@@ -23,7 +23,6 @@ Model
 - [X] grow usage
 - [ ] traffic
 - [ ] keep track of total population/needs
-- [ ] immigration/emigration?
 - [ ] extrinsic job/pop growth?
 - [ ] grow jobs by zoning?
 
@@ -31,7 +30,7 @@ Assets
 - [X] residential graphics
   - [X] growth stadii
   - [ ] diversity
-- [X ] commercial graphics
+- [X] commercial graphics
   - [X] growth stadii
   - [ ] diversity
 - [ ] traffic
