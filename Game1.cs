@@ -133,6 +133,8 @@ namespace SimCityScope
                 {
                     timeStep++;
                     stepTimer -= speed;
+
+                    world.updateStep(); // the magic happens here
                 }
             }
 
@@ -311,7 +313,11 @@ namespace SimCityScope
                         spriteBatch.Draw(sprites[tile], a, Color.White);
                     }
                     else
+                    {
                         GeometryDrawer.fillRect(a.ToPoint(), world.tilesize, world.tilesize, newCol);
+                        if(world.grid[x, y].value>0)
+                            spriteBatch.DrawString(font, world.grid[x, y].value.ToString(), a, Color.White);
+                    }
                 }
             }
 
