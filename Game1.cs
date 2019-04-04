@@ -104,6 +104,18 @@ namespace SimCityScope
             sprites["road_NSW"] = Content.Load<Texture2D>("roads/NSW");
             sprites["road_NEW"] = Content.Load<Texture2D>("roads/NEW");
             sprites["road_NESW"] = Content.Load<Texture2D>("roads/NESW");
+
+
+            sprites["res_1"] = Content.Load<Texture2D>("residential_high/residential_high_1");
+            sprites["res_2"] = Content.Load<Texture2D>("residential_high/residential_high_2");
+            sprites["res_3"] = Content.Load<Texture2D>("residential_high/residential_high_3");
+            sprites["res_4"] = Content.Load<Texture2D>("residential_high/residential_high_4");
+            sprites["res_5"] = Content.Load<Texture2D>("residential_high/residential_high_5");
+            sprites["comm_1"] = Content.Load<Texture2D>("commercial_high/000");
+            sprites["comm_2"] = Content.Load<Texture2D>("commercial_high/001");
+            sprites["comm_3"] = Content.Load<Texture2D>("commercial_high/002");
+            sprites["comm_4"] = Content.Load<Texture2D>("commercial_high/003");
+            sprites["comm_5"] = Content.Load<Texture2D>("commercial_high/004");
         }
 
         /// <summary>
@@ -315,8 +327,21 @@ namespace SimCityScope
                     else
                     {
                         GeometryDrawer.fillRect(a.ToPoint(), world.tilesize, world.tilesize, newCol);
-                        if(world.grid[x, y].value>0)
-                            spriteBatch.DrawString(font, world.grid[x, y].value.ToString(), a, Color.White);
+                        if (world.grid[x, y].value > 0)
+                        {
+                            var step = Tile.maxVal / 5;
+                            var lvl = world.grid[x, y].value / step +1;
+                            if (lvl > 5) lvl = 5;
+
+                            if (world.grid[x,y].type == TileType.RES)
+                                spriteBatch.Draw(texture: sprites["res_" + lvl],position: a, scale: new Vector2((float)world.tilesize/24.0f),color: Color.White, origin: new Vector2(0,8));
+                            
+                            else if (world.grid[x, y].type == TileType.COMM)
+                                spriteBatch.Draw(texture: sprites["comm_" + lvl], position: a, scale: new Vector2((float)world.tilesize / 24.0f), color: Color.White, origin: new Vector2(0, 8));
+                            
+                            else
+                                spriteBatch.DrawString(font, world.grid[x, y].value.ToString(), a, Color.White);
+                        }
                     }
                 }
             }

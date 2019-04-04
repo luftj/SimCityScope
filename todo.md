@@ -28,8 +28,10 @@ Model
 - [ ] grow jobs by zoning?
 
 Assets
-- [ ] residential graphics
-  - [ ] growth stadii
-- [ ] commercial graphics
-  - [ ] growth stadii
+- [X] residential graphics
+  - [X] growth stadii
+  - [ ] diversity
+- [X ] commercial graphics
+  - [X] growth stadii
+  - [ ] diversity
 - [ ] traffic
