@@ -9,15 +9,16 @@ View
 
 Control
 - [ ] input abstraction (to handle multiple modalities: mouse, touch, lego, ...)
-- [ ] rectangle zoning
+- [X] rectangle zoning
   - [X] mouse
-  - [ ] touch
+  - [X] touch
   - [X] draw rectangle
+- [ ] line zoning (for roads)
 - [ ] time
   - [X] pause/continue
     - [ ] pause/continue UI element
   - [ ] faster/slower
-- [ ] touch camera movement (2-finger-drag)
+- [X] touch camera movement (2-finger-drag)
 
 Model
 - [X] keep time (ticks)

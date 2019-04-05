@@ -40,6 +40,8 @@ namespace SimCityScope
         Point? dragStart = null;
         #endregion
 
+        string debugtext = "";
+
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -61,6 +63,8 @@ namespace SimCityScope
         protected override void Initialize()
         {
             this.IsMouseVisible = true;
+
+            TouchPanel.EnabledGestures = GestureType.FreeDrag | GestureType.Tap | GestureType.Pinch | GestureType.DragComplete;
 
             world = new World(20);
             camOffset = new Vector2(90, 20);
@@ -133,6 +137,44 @@ namespace SimCityScope
         }
 
         /// <summary>
+        /// Performs zoning (setting TileType) under a rectangular area.
+        /// </summary>
+        /// <param name="A">first corner of box selection in screen coordinates</param>
+        /// <param name="B">second corner</param>
+        /// <param name="type"></param>
+        void boxZone(Point A, Point B, TileType type)
+        {
+            var startpos = screenToWorld(A);
+
+            var xmin = MathHelper.Min(startpos.Value.X, B.X);
+            var xmax = MathHelper.Max(startpos.Value.X, B.X);
+            var ymin = MathHelper.Min(startpos.Value.Y, B.Y);
+            var ymax = MathHelper.Max(startpos.Value.Y, B.Y);
+
+            for (int x = (int)xmin; x <= xmax; ++x)
+            {
+                for (int y = (int)ymin; y <= ymax; ++y)
+                {
+                    if (world.grid[x, y].type == TileType.NONE)
+                        world.grid[x, y].type = type;
+                }
+            }
+        }
+
+        void selectInterface(Point pos)
+        {
+            if (pos.X < InterfaceElement.width)
+            {
+                int idx = pos.Y / InterfaceElement.height;
+                if (idx < interfaceElements.Count && idx >= 0)
+                {
+                    InterfaceElement selected = interfaceElements[idx];
+                    selected.action?.Invoke();  // change interface state
+                }
+            }
+        }
+
+        /// <summary>
         /// Allows the game to run logic such as updating the world,
         /// checking for collisions, gathering input, and playing audio.
         /// </summary>
@@ -141,6 +183,8 @@ namespace SimCityScope
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
+
+            debugtext = "";
 
             // simulation steps
             if (running)
@@ -155,10 +199,15 @@ namespace SimCityScope
                 }
             }
 
-            MouseState mouse = Mouse.GetState();
             // mouse interaction
+            MouseState mouse = Mouse.GetState();
+
+            // mouse drag
             if (mouse.LeftButton == ButtonState.Pressed && prevMS.LeftButton == ButtonState.Released)
             {
+                // get interface click
+                selectInterface(mouse.Position);
+
                 var pos = screenToWorld(Mouse.GetState().Position);
                 if (pos != null)
                     dragStart = mouse.Position;
@@ -166,66 +215,31 @@ namespace SimCityScope
                     dragStart = null;
             }
 
+            TileType newTile = TileType.NONE;
+            switch (state)
+            {
+                case InterfaceState.REMOVE: newTile = TileType.NONE; break;
+                case InterfaceState.COMM:   newTile = TileType.COMM; break;
+                case InterfaceState.RES:    newTile = TileType.RES; break;
+                case InterfaceState.ROAD:   newTile = TileType.ROAD; break;
+            }
+            debugtext += "tilestate: " + newTile.ToString() +"\n";
+
             if (mouse.LeftButton == ButtonState.Released && prevMS.LeftButton == ButtonState.Pressed)
             {
-                TileType newTile = TileType.NONE;
-                switch (state)
-                {
-                    case InterfaceState.REMOVE:
-                        newTile = TileType.NONE;
-                        break;
-                    case InterfaceState.COMM:
-                        newTile = TileType.COMM;
-                        break;
-                    case InterfaceState.RES:
-                        newTile = TileType.RES;
-                        break;
-                }
                 var pos = screenToWorld(mouse.Position);
                 if (pos != null)
                 {
-                    if (dragStart != null)
-                    {
-                        // fill rect
-                        var startpos = screenToWorld(dragStart.Value);
-
-                        var xmin = MathHelper.Min(startpos.Value.X, pos.Value.X);
-                        var xmax = MathHelper.Max(startpos.Value.X, pos.Value.X);
-                        var ymin = MathHelper.Min(startpos.Value.Y, pos.Value.Y);
-                        var ymax = MathHelper.Max(startpos.Value.Y, pos.Value.Y);
-
-                        for (int x = (int)xmin; x <= xmax; ++x)
-                        {
-                            for (int y = (int)ymin; y <= ymax; ++y)
-                            {
-                                if (world.grid[x, y].type == TileType.NONE)
-                                    world.grid[x, y].type = newTile;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // fill single tile
-
+                    if (dragStart != null && state != InterfaceState.ROAD) // fill rect
+                        boxZone(dragStart.Value, pos.Value.ToPoint(), newTile);
+                    else // fill single tile
                         world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
-                    }
                 }
                 dragStart = null;
             }
 
-            if (mouse.LeftButton == ButtonState.Pressed && (state == InterfaceState.ROAD || prevMS.LeftButton == ButtonState.Released))
+            if (mouse.LeftButton == ButtonState.Pressed && (state == InterfaceState.ROAD || state == InterfaceState.REMOVE))
             {
-                // get interface click
-                if (mouse.Position.X < InterfaceElement.width)
-                {
-                    int idx = mouse.Position.Y / InterfaceElement.height;
-                    if (idx < interfaceElements.Count && idx >= 0)
-                    {
-                        InterfaceElement selected = interfaceElements[idx];
-                        selected.action?.Invoke();
-                    }
-                }
-
                 var pos = screenToWorld(Mouse.GetState().Position);
                 if (pos != null)
                 {
@@ -243,36 +257,59 @@ namespace SimCityScope
             }
 
             // touch interaction
-            foreach (var touch in TouchPanel.GetState())
+            // get any gestures that are ready.
+            while (TouchPanel.IsGestureAvailable)
             {
-                // You're looking for when they finish a drag, so only check
-                // released touches.
-                if (touch.State != TouchLocationState.Released)
-                    continue;
+                GestureSample gs = TouchPanel.ReadGesture();
+                var pos = screenToWorld(gs.Position.ToPoint());
+                var delta = gs.Delta;
+                switch (gs.GestureType)
+                {
+                    case GestureType.Tap:
+                        // single tap
+                        // get interface click
+                        selectInterface(gs.Position.ToPoint());
 
-                TouchLocation prevLoc;
+                        if (pos == null) break;
+                        world.grid[(int)pos.Value.X, (int)pos.Value.Y].type = newTile;
+                        debugtext += "tap\n";
+                        break;
+                    case GestureType.DragComplete:
+                        // move the poem screen vertically by the drag delta
+                        // amount.
+                        if (pos == null) break;
+                        if (state == InterfaceState.ROAD || state == InterfaceState.REMOVE) break;
+                        boxZone(pos.Value.ToPoint(),(pos.Value.ToPoint() - delta.ToPoint()), newTile);
+                        debugtext += "dragcomplete\n";
+                        break;
 
-                // Sometimes TryGetPreviousLocation can fail. Bail out early if this happened
-                // or if the last state didn't move
-                if (!touch.TryGetPreviousLocation(out prevLoc) || prevLoc.State != TouchLocationState.Moved)
-                    continue;
-
-                var pos = screenToWorld(touch.Position.ToPoint());
-                if (pos != null)
-                    world.grid[(int)pos?.X, (int)pos?.Y].active ^= true;
-
-                // get your delta
-                //var delta = touch.Position - prevLoc.Position;
-
-                // Usually you don't want to do something if the user drags 1 pixel.
-                //if (delta.LengthSquared() < YOUR_DRAG_TOLERANCE)
-                //    continue;
-
-                //if (delta.X < 0 || delta.Y < 0)
-                //    return new RotateLeftCommand(_gameController);
-
-                //if (delta.X > 0 || delta.Y > 0)
-                //    return new RotateRightCommand(_gameController);
+                    case GestureType.Pinch:
+                        // add velocity to the poem screen (only interested in
+                        // changes to Y velocity).
+                        var delta2 = gs.Delta2;
+                        if (delta2 == null) break;
+                        var move = (delta + delta2) / 2;  // average of 2-finger-drag
+                        camOffset += move;
+                        debugtext += "pinch\n";
+                        break;
+                    case GestureType.FreeDrag:
+                        // happens multiple times _during_ a drag. 
+                        // use for roads + removal
+                        if (pos == null) break;
+                        if (state == InterfaceState.ROAD)
+                        {
+                            world.grid[(int)pos.Value.X, (int)pos.Value.Y].type = newTile;
+                        }
+                        else if (state == InterfaceState.REMOVE)
+                        {
+                            world.removeTile((int)pos.Value.X, (int)pos.Value.Y);
+                        }
+                        break;
+                    default:
+                        // other gesture happened
+                        debugtext += "Unhandled gesture: " + gs.GestureType.ToString() + "\n";
+                        break;
+                }
             }
 
             // move view
@@ -392,7 +429,7 @@ namespace SimCityScope
             }
 
             // draw debug output
-            spriteBatch.DrawString(font, vacancies.ToString(), Vector2.One, Color.White);
+            spriteBatch.DrawString(font, debugtext, Vector2.One, Color.White);
 
             spriteBatch.End();
 
