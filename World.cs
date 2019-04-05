@@ -34,7 +34,9 @@ namespace SimCityScope
 
         public int population { get; private set; } = 0;
         public int jobs { get; private set; } = 10;
+        public int jobDemand { get; private set; }
         int ecoGrowth = 2;
+        int maxGrowthPerStep = 5;
 
         public World(int size)
         {
@@ -51,9 +53,9 @@ namespace SimCityScope
             // growth scenarios
             var vacancies = jobs - population;  // todo: either one has to come from somewhere...
             if (vacancies > 0)
-                growTile(TileType.RES, vacancies);
+                growTile(TileType.RES, MathHelper.Min(vacancies,maxGrowthPerStep));
             else if (vacancies < 0)
-                growTile(TileType.COMM, -vacancies);
+                jobDemand = growTile(TileType.COMM, MathHelper.Min(-vacancies, maxGrowthPerStep));
 
             // update traffic
             List<Point> relevantTiles = new List<Point>();
@@ -70,7 +72,7 @@ namespace SimCityScope
                 }
         }
 
-        public void growTile(TileType type, int amount)
+        public int growTile(TileType type, int amount)
         {
             // find tiles of this type
             List<Point> relevantTiles = new List<Point>();
@@ -105,6 +107,7 @@ namespace SimCityScope
 
                 --amountleft;
             }
+            return amountleft;
         }
 
         public void removeTile(int x, int y)

@@ -16,7 +16,7 @@ namespace SimCityScope
         #region TIME
         bool running = true;
         int timeStep = 0; // total elapsed time steps
-        float speed = 2.0f; // seconds per time step
+        float speed = 0.5f; // seconds per time step
         double stepTimer = 0.0f;
         #endregion
 
@@ -368,6 +368,19 @@ namespace SimCityScope
                 //GeometryDrawer.drawLine(pos, pos + Vector2.UnitX * (interfaceWidth+10), Color.Red);
             }
 
+            // todo: draw stats, info, plots (passive UI)
+            // todo: treasury?
+            // draw residential-commercial demand chart
+            pos.Y += 20;
+            pos.X += InterfaceElement.width / 2;
+            var vacancies = world.jobs - world.population;
+            GeometryDrawer.fillRect(new Rectangle(pos.ToPoint(), new Point(vacancies, 10)), Color.Green); // draw res demand
+            spriteBatch.DrawString(font, "R", pos, Color.White);
+            pos.Y += 20;
+            GeometryDrawer.fillRect(new Rectangle(new Point((int)pos.X - vacancies, (int)pos.Y), new Point(-vacancies, 10)), Color.Blue); // draw comemrcial demand
+            spriteBatch.DrawString(font, "C", pos, Color.White);
+
+
             // draw cursor/selector
             if (dragStart != null && (state == InterfaceState.COMM || state == InterfaceState.RES))
             {
@@ -379,7 +392,7 @@ namespace SimCityScope
             }
 
             // draw debug output
-            spriteBatch.DrawString(font, timeStep.ToString(), Vector2.One, Color.White);
+            spriteBatch.DrawString(font, vacancies.ToString(), Vector2.One, Color.White);
 
             spriteBatch.End();
 

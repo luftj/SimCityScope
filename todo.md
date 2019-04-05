@@ -8,6 +8,7 @@ View
 - [X] visualise usage amount/growth
 
 Control
+- [ ] input abstraction (to handle multiple modalities: mouse, touch, lego, ...)
 - [ ] rectangle zoning
   - [X] mouse
   - [ ] touch
@@ -22,9 +23,11 @@ Model
 - [X] keep time (ticks)
 - [X] grow usage
 - [ ] traffic
+  - [ ] routing between jobs/pop
 - [ ] keep track of total population/needs
 - [ ] extrinsic job/pop growth?
 - [ ] grow jobs by zoning?
+- [ ] money?
 
 Assets
 - [X] residential graphics
@@ -33,4 +36,5 @@ Assets
 - [X] commercial graphics
   - [X] growth stadii
   - [ ] diversity
-- [ ] traffic
+- [X] traffic
+  - [ ] density
