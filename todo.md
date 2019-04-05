@@ -25,8 +25,11 @@ Model
 - [X] grow usage
 - [ ] traffic
   - [ ] routing between jobs/pop
+- [ ] road connectivity
 - [ ] keep track of total population/needs
 - [ ] extrinsic job/pop growth?
+- [ ] exponential pop growth?
+- [ ] decrease in job/pop, when not fulfilling demands
 - [ ] grow jobs by zoning?
 - [ ] money?
 

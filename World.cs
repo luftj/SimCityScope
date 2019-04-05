@@ -17,7 +17,6 @@ namespace SimCityScope
 
     struct Tile
     {
-        public bool active;
         public TileType type;
 
         public int value;

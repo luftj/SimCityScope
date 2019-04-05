@@ -41,12 +41,16 @@ namespace SimCityScope
         #endregion
 
         string debugtext = "";
+        bool firstframe = true;
 
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
             graphics.PreferredBackBufferWidth = windowWidth;
             graphics.PreferredBackBufferHeight = windowHeight;
+            Mouse.WindowHandle = Window.Handle;
+            Window.IsBorderless = true;
+
             Content.RootDirectory = "Content";
 
             sprites = new Dictionary<string, Texture2D>();
@@ -62,6 +66,13 @@ namespace SimCityScope
         /// </summary>
         protected override void Initialize()
         {
+            //windowWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            //windowHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            graphics.PreferredBackBufferWidth = windowWidth;
+            graphics.PreferredBackBufferHeight = windowHeight;
+            //graphics.ToggleFullScreen();
+            graphics.ApplyChanges();
+
             this.IsMouseVisible = true;
 
             TouchPanel.EnabledGestures = GestureType.FreeDrag | GestureType.Tap | GestureType.Pinch | GestureType.DragComplete;
@@ -186,6 +197,8 @@ namespace SimCityScope
 
             debugtext = "";
 
+            debugtext += Window.ClientBounds + "\n";
+
             // simulation steps
             if (running)
             {
@@ -198,23 +211,7 @@ namespace SimCityScope
                     world.updateStep(); // the magic happens here
                 }
             }
-
-            // mouse interaction
-            MouseState mouse = Mouse.GetState();
-
-            // mouse drag
-            if (mouse.LeftButton == ButtonState.Pressed && prevMS.LeftButton == ButtonState.Released)
-            {
-                // get interface click
-                selectInterface(mouse.Position);
-
-                var pos = screenToWorld(Mouse.GetState().Position);
-                if (pos != null)
-                    dragStart = mouse.Position;
-                else
-                    dragStart = null;
-            }
-
+            
             TileType newTile = TileType.NONE;
             switch (state)
             {
@@ -225,37 +222,7 @@ namespace SimCityScope
             }
             debugtext += "tilestate: " + newTile.ToString() +"\n";
 
-            if (mouse.LeftButton == ButtonState.Released && prevMS.LeftButton == ButtonState.Pressed)
-            {
-                var pos = screenToWorld(mouse.Position);
-                if (pos != null)
-                {
-                    if (dragStart != null && state != InterfaceState.ROAD) // fill rect
-                        boxZone(dragStart.Value, pos.Value.ToPoint(), newTile);
-                    else // fill single tile
-                        world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
-                }
-                dragStart = null;
-            }
-
-            if (mouse.LeftButton == ButtonState.Pressed && (state == InterfaceState.ROAD || state == InterfaceState.REMOVE))
-            {
-                var pos = screenToWorld(Mouse.GetState().Position);
-                if (pos != null)
-                {
-                    switch (state)
-                    {
-                        case InterfaceState.REMOVE:
-                            world.removeTile((int)pos?.X, (int)pos?.Y);
-                            break;
-                        case InterfaceState.ROAD:
-                            world.grid[(int)pos?.X, (int)pos?.Y].type = TileType.ROAD;
-                            break;
-                    }
-
-                }
-            }
-
+            #region touch_input
             // touch interaction
             // get any gestures that are ready.
             while (TouchPanel.IsGestureAvailable)
@@ -279,7 +246,7 @@ namespace SimCityScope
                         // amount.
                         if (pos == null) break;
                         if (state == InterfaceState.ROAD || state == InterfaceState.REMOVE) break;
-                        boxZone(pos.Value.ToPoint(),(pos.Value.ToPoint() - delta.ToPoint()), newTile);
+                        boxZone(pos.Value.ToPoint(), (pos.Value.ToPoint() - delta.ToPoint()), newTile);
                         debugtext += "dragcomplete\n";
                         break;
 
@@ -311,16 +278,71 @@ namespace SimCityScope
                         break;
                 }
             }
+            #endregion
 
+            #region mouse_input
+            // mouse interaction
+            MouseState mouse = Mouse.GetState();
+            debugtext += mouse.Position.ToString() + "\n";
+            // mouse drag ended
+            if (mouse.LeftButton == ButtonState.Released && prevMS.LeftButton == ButtonState.Pressed)
+            {
+                var pos = screenToWorld(mouse.Position);
+                if (pos != null)
+                {
+                    if (dragStart != null && state != InterfaceState.ROAD) // fill rect
+                        boxZone(dragStart.Value, pos.Value.ToPoint(), newTile);
+                    else // fill single tile
+                        world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
+                }
+                dragStart = null;
+            }
+
+            if (mouse.LeftButton == ButtonState.Pressed)
+            {
+                var pos = screenToWorld(Mouse.GetState().Position);
+
+                if ( state == InterfaceState.ROAD || state == InterfaceState.REMOVE)
+                    if (pos != null)
+                    {
+                        switch (state)
+                        {
+                            case InterfaceState.REMOVE:
+                                world.removeTile((int)pos?.X, (int)pos?.Y);
+                                break;
+                            case InterfaceState.ROAD:
+                                world.grid[(int)pos?.X, (int)pos?.Y].type = TileType.ROAD;
+                                break;
+                        }
+
+                    }
+                
+                if (prevMS.LeftButton == ButtonState.Released)
+                {
+                    // get interface click
+                    selectInterface(mouse.Position);
+
+                    // mouse drag
+                    if (pos != null)
+                        dragStart = mouse.Position;
+                    else
+                        dragStart = null;
+                }
+            }
+
+            prevMS = Mouse.GetState();
+            #endregion
+            
+            #region keyboard_input
             // move view
             if (Keyboard.GetState().IsKeyDown(Keys.W)) camOffset.Y++;
             if (Keyboard.GetState().IsKeyDown(Keys.A)) camOffset.X++;
             if (Keyboard.GetState().IsKeyDown(Keys.S)) camOffset.Y--;
             if (Keyboard.GetState().IsKeyDown(Keys.D)) camOffset.X--;
             if (Keyboard.GetState().IsKeyDown(Keys.Space) && prevKB.IsKeyUp(Keys.Space)) running ^= true; // toggle simulation state
-
-            prevMS = Mouse.GetState();
             prevKB = Keyboard.GetState();
+            #endregion
+
             base.Update(gameTime);
         }
 
@@ -429,7 +451,7 @@ namespace SimCityScope
             }
 
             // draw debug output
-            spriteBatch.DrawString(font, debugtext, Vector2.One, Color.White);
+            spriteBatch.DrawString(font, debugtext, Vector2.UnitY * (windowHeight - font.MeasureString(debugtext).Y), Color.White);
 
             spriteBatch.End();
 
