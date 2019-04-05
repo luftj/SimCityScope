@@ -26,7 +26,7 @@ namespace SimCityScope
 
     class World
     {
-        public int size = 20;   // number of tiles in each dimension
+        public int size;   // number of tiles in each dimension
         public int tilesize = 30;   // width/height of tiles in px
 
         public Tile[,] grid;    // the map

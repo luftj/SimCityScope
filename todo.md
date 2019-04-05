@@ -32,6 +32,8 @@ Model
 - [ ] decrease in job/pop, when not fulfilling demands
 - [ ] grow jobs by zoning?
 - [ ] money?
+- [ ] growth distribution more interesting (e.g. more growth with higher diversity/connectivity, ...)
+- [ ] multi-tile structures
 
 Assets
 - [X] residential graphics

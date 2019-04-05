@@ -24,24 +24,21 @@ namespace SimCityScope
         GraphicsDeviceManager graphics;
         public SpriteBatch spriteBatch;
 
-        Dictionary<string, Texture2D> sprites;
+        public Dictionary<string, Texture2D> sprites { get; private set; }
         SpriteFont font;
         int windowWidth = 800;
-        int windowHeight = 800;
+        public int windowHeight { get; private set; } = 800;
         #endregion
 
         #region CONROL
         KeyboardState prevKB;
         MouseState prevMS;
         Vector2 camOffset;
-        List<InterfaceElement> interfaceElements;
-        InterfaceState state;
-
+        Interface UI;
         Point? dragStart = null;
         #endregion
 
         string debugtext = "";
-        bool firstframe = true;
 
         public Game1()
         {
@@ -49,13 +46,12 @@ namespace SimCityScope
             graphics.PreferredBackBufferWidth = windowWidth;
             graphics.PreferredBackBufferHeight = windowHeight;
             Mouse.WindowHandle = Window.Handle;
-            Window.IsBorderless = true;
+            Window.IsBorderless = true; // otherwise mouse pos can be 20px (titlebar) off!
 
             Content.RootDirectory = "Content";
 
             sprites = new Dictionary<string, Texture2D>();
 
-            interfaceElements = new List<InterfaceElement>();
         }
 
         /// <summary>
@@ -77,14 +73,10 @@ namespace SimCityScope
 
             TouchPanel.EnabledGestures = GestureType.FreeDrag | GestureType.Tap | GestureType.Pinch | GestureType.DragComplete;
 
-            world = new World(20);
-            camOffset = new Vector2(90, 20);
+            world = new World(100);
+            camOffset = new Vector2(-190, -120);
 
-            interfaceElements.Add(new InterfaceElement("", null));
-            interfaceElements.Add(new InterfaceElement("remove", delegate () { state = InterfaceState.REMOVE; }));
-            interfaceElements.Add(new InterfaceElement("road", delegate () { state = InterfaceState.ROAD; }));
-            interfaceElements.Add(new InterfaceElement("commercial", delegate () { state = InterfaceState.COMM; }));
-            interfaceElements.Add(new InterfaceElement("residential", delegate () { state = InterfaceState.RES; }));
+            UI = new Interface(this);
 
             base.Initialize();
         }
@@ -172,18 +164,7 @@ namespace SimCityScope
             }
         }
 
-        void selectInterface(Point pos)
-        {
-            if (pos.X < InterfaceElement.width)
-            {
-                int idx = pos.Y / InterfaceElement.height;
-                if (idx < interfaceElements.Count && idx >= 0)
-                {
-                    InterfaceElement selected = interfaceElements[idx];
-                    selected.action?.Invoke();  // change interface state
-                }
-            }
-        }
+
 
         /// <summary>
         /// Allows the game to run logic such as updating the world,
@@ -213,7 +194,7 @@ namespace SimCityScope
             }
             
             TileType newTile = TileType.NONE;
-            switch (state)
+            switch (UI.state)
             {
                 case InterfaceState.REMOVE: newTile = TileType.NONE; break;
                 case InterfaceState.COMM:   newTile = TileType.COMM; break;
@@ -235,7 +216,7 @@ namespace SimCityScope
                     case GestureType.Tap:
                         // single tap
                         // get interface click
-                        selectInterface(gs.Position.ToPoint());
+                        UI.selectInterface(gs.Position.ToPoint());
 
                         if (pos == null) break;
                         world.grid[(int)pos.Value.X, (int)pos.Value.Y].type = newTile;
@@ -245,7 +226,7 @@ namespace SimCityScope
                         // move the poem screen vertically by the drag delta
                         // amount.
                         if (pos == null) break;
-                        if (state == InterfaceState.ROAD || state == InterfaceState.REMOVE) break;
+                        if (UI.state == InterfaceState.ROAD || UI.state == InterfaceState.REMOVE) break;
                         boxZone(pos.Value.ToPoint(), (pos.Value.ToPoint() - delta.ToPoint()), newTile);
                         debugtext += "dragcomplete\n";
                         break;
@@ -263,11 +244,11 @@ namespace SimCityScope
                         // happens multiple times _during_ a drag. 
                         // use for roads + removal
                         if (pos == null) break;
-                        if (state == InterfaceState.ROAD)
+                        if (UI.state == InterfaceState.ROAD)
                         {
                             world.grid[(int)pos.Value.X, (int)pos.Value.Y].type = newTile;
                         }
-                        else if (state == InterfaceState.REMOVE)
+                        else if (UI.state == InterfaceState.REMOVE)
                         {
                             world.removeTile((int)pos.Value.X, (int)pos.Value.Y);
                         }
@@ -290,7 +271,7 @@ namespace SimCityScope
                 var pos = screenToWorld(mouse.Position);
                 if (pos != null)
                 {
-                    if (dragStart != null && state != InterfaceState.ROAD) // fill rect
+                    if (dragStart != null && UI.state != InterfaceState.ROAD) // fill rect
                         boxZone(dragStart.Value, pos.Value.ToPoint(), newTile);
                     else // fill single tile
                         world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
@@ -302,10 +283,10 @@ namespace SimCityScope
             {
                 var pos = screenToWorld(Mouse.GetState().Position);
 
-                if ( state == InterfaceState.ROAD || state == InterfaceState.REMOVE)
+                if ( UI.state == InterfaceState.ROAD || UI.state == InterfaceState.REMOVE)
                     if (pos != null)
                     {
-                        switch (state)
+                        switch (UI.state)
                         {
                             case InterfaceState.REMOVE:
                                 world.removeTile((int)pos?.X, (int)pos?.Y);
@@ -320,7 +301,7 @@ namespace SimCityScope
                 if (prevMS.LeftButton == ButtonState.Released)
                 {
                     // get interface click
-                    selectInterface(mouse.Position);
+                    UI.selectInterface(mouse.Position);
 
                     // mouse drag
                     if (pos != null)
@@ -358,8 +339,8 @@ namespace SimCityScope
             // draw grid
             for (int x = 0; x < world.size + 1; ++x)
             {
-                GeometryDrawer.drawLine(camOffset + new Vector2(x * world.tilesize, 0), camOffset + new Vector2(x, world.size) * world.tilesize, Color.Black);   // vertical lines
-                GeometryDrawer.drawLine(camOffset + new Vector2(0, x * world.tilesize), camOffset + new Vector2(world.size, x) * world.tilesize, Color.Black);   // horizontal lines
+                GeometryDrawer.drawLine(camOffset + new Vector2(x * world.tilesize+1, 0), camOffset + new Vector2(x, world.size) * world.tilesize + Vector2.UnitX, Color.Black);   // vertical lines
+                GeometryDrawer.drawLine(camOffset + new Vector2(0, x * world.tilesize+1), camOffset + new Vector2(world.size, x) * world.tilesize+Vector2.UnitY, Color.Black);   // horizontal lines
             }
             // draw tiles
             for (int x = 0; x < world.size; ++x)
@@ -418,10 +399,10 @@ namespace SimCityScope
             // draw interface
             GeometryDrawer.fillRect(Point.Zero, InterfaceElement.width, windowHeight, Color.Gray);
             Vector2 pos = Vector2.Zero;
-            for (int i = 0; i < interfaceElements.Count; ++i)
+            for (int i = 0; i < UI.interfaceElements.Count; ++i)
             {
-                if (interfaceElements[i].name != "")
-                    spriteBatch.Draw(sprites[interfaceElements[i].name], pos, Color.White);
+                if (UI.interfaceElements[i].name != "")
+                    spriteBatch.Draw(sprites[UI.interfaceElements[i].name], pos, Color.White);
                 //spriteBatch.DrawString(font, interfaceEls[i].name, pos + Vector2.UnitY * interfaceWidth / 2.0f, Color.White);
                 pos.Y += InterfaceElement.height;
                 //GeometryDrawer.drawLine(pos, pos + Vector2.UnitX * (interfaceWidth+10), Color.Red);
@@ -441,7 +422,7 @@ namespace SimCityScope
 
 
             // draw cursor/selector
-            if (dragStart != null && (state == InterfaceState.COMM || state == InterfaceState.RES))
+            if (dragStart != null && (UI.state == InterfaceState.COMM || UI.state == InterfaceState.RES))
             {
                 var xmin = MathHelper.Min(dragStart.Value.X, Mouse.GetState().Position.X);
                 var xmax = MathHelper.Max(dragStart.Value.X, Mouse.GetState().Position.X);
