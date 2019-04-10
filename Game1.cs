@@ -13,10 +13,6 @@ namespace SimCityScope
     {
         #region STATE
         public World world;
-
-        
-
-        
         #endregion
 
         #region TIME
@@ -100,7 +96,7 @@ namespace SimCityScope
             TouchPanel.EnabledGestures = GestureType.FreeDrag | GestureType.Tap | GestureType.Pinch | GestureType.DragComplete;
 
             world = new World(100);
-            world.bankAccount = 10000;
+            world.bankAccount = 2000;
 
             camOffset = new Vector2(-190, -120);
             UI = new Interface(this);
