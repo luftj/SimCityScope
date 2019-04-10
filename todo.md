@@ -19,6 +19,9 @@ Control
     - [ ] pause/continue UI element
   - [ ] faster/slower
 - [X] touch camera movement (2-finger-drag)
+- [X] main menu
+  - [ ] touch: activate by downwards flick
+  - [X] anim: slide in from top of screen
 
 Model
 - [X] keep time (ticks)

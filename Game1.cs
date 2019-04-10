@@ -25,8 +25,8 @@ namespace SimCityScope
         public SpriteBatch spriteBatch;
 
         public Dictionary<string, Texture2D> sprites { get; private set; }
-        SpriteFont font;
-        int windowWidth = 800;
+        public SpriteFont font;
+        public int windowWidth { get; private set; } = 800;
         public int windowHeight { get; private set; } = 800;
         #endregion
 
@@ -36,6 +36,8 @@ namespace SimCityScope
         Vector2 camOffset;
         Interface UI;
         Point? dragStart = null;
+
+        MainMenu menu;
         #endregion
 
         string debugtext = "";
@@ -46,12 +48,34 @@ namespace SimCityScope
             graphics.PreferredBackBufferWidth = windowWidth;
             graphics.PreferredBackBufferHeight = windowHeight;
             Mouse.WindowHandle = Window.Handle;
-            Window.IsBorderless = true; // otherwise mouse pos can be 20px (titlebar) off!
-
+            
             Content.RootDirectory = "Content";
 
             sprites = new Dictionary<string, Texture2D>();
 
+            menu = new MainMenu(this);
+        }
+
+        void toggleFullscreen()
+        {
+            if(graphics.IsFullScreen)
+            {
+                Window.IsBorderless = false;
+                windowWidth = 800;
+                windowHeight = 600;
+            }
+            else
+            {
+                Window.IsBorderless = true; // otherwise mouse pos can be 20px (titlebar) off!
+                windowWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+                windowHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            }
+
+            graphics.PreferredBackBufferWidth = windowWidth;
+            graphics.PreferredBackBufferHeight = windowHeight;
+            graphics.ToggleFullScreen();
+            graphics.ApplyChanges();
+            GeometryDrawer.init(this);
         }
 
         /// <summary>
@@ -62,11 +86,8 @@ namespace SimCityScope
         /// </summary>
         protected override void Initialize()
         {
-            //windowWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
-            //windowHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
             graphics.PreferredBackBufferWidth = windowWidth;
             graphics.PreferredBackBufferHeight = windowHeight;
-            //graphics.ToggleFullScreen();
             graphics.ApplyChanges();
 
             this.IsMouseVisible = true;
@@ -176,6 +197,9 @@ namespace SimCityScope
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
+
+            menu.Update(gameTime);
+
             debugtext = "";
 
             debugtext += Window.ClientBounds + "\n";
@@ -274,12 +298,13 @@ namespace SimCityScope
                     if (dragStart != null && UI.state != InterfaceState.ROAD) // fill rect
                         boxZone(dragStart.Value, pos.Value.ToPoint(), newTile);
                     else // fill single tile
-                        world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
+                        if(!menu.mouseInMenu())
+                            world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
                 }
                 dragStart = null;
             }
 
-            if (mouse.LeftButton == ButtonState.Pressed)
+            if (mouse.LeftButton == ButtonState.Pressed && !menu.mouseInMenu())
             {
                 var pos = screenToWorld(Mouse.GetState().Position);
 
@@ -321,6 +346,8 @@ namespace SimCityScope
             if (Keyboard.GetState().IsKeyDown(Keys.S)) camOffset.Y--;
             if (Keyboard.GetState().IsKeyDown(Keys.D)) camOffset.X--;
             if (Keyboard.GetState().IsKeyDown(Keys.Space) && prevKB.IsKeyUp(Keys.Space)) running ^= true; // toggle simulation state
+            if (Keyboard.GetState().IsKeyDown(Keys.M) && prevKB.IsKeyUp(Keys.M)) toggleFullscreen(); // toggle simulation state
+            if (Keyboard.GetState().IsKeyDown(Keys.Enter) && prevKB.IsKeyUp(Keys.Enter)) menu.startSlide(); // toggle simulation state
             prevKB = Keyboard.GetState();
             #endregion
 
@@ -434,6 +461,7 @@ namespace SimCityScope
             // draw debug output
             spriteBatch.DrawString(font, debugtext, Vector2.UnitY * (windowHeight - font.MeasureString(debugtext).Y), Color.White);
 
+            menu.Draw(gameTime);
             spriteBatch.End();
 
             base.Draw(gameTime);
