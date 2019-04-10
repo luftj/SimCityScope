@@ -11,7 +11,13 @@ namespace SimCityScope
     /// </summary>
     public class Game1 : Game
     {
+        #region STATE
         public World world;
+
+        
+
+        
+        #endregion
 
         #region TIME
         bool running = true;
@@ -94,8 +100,9 @@ namespace SimCityScope
             TouchPanel.EnabledGestures = GestureType.FreeDrag | GestureType.Tap | GestureType.Pinch | GestureType.DragComplete;
 
             world = new World(100);
-            camOffset = new Vector2(-190, -120);
+            world.bankAccount = 10000;
 
+            camOffset = new Vector2(-190, -120);
             UI = new Interface(this);
 
             menu = new MainMenu(this);
@@ -149,6 +156,9 @@ namespace SimCityScope
             sprites["cars_hor_1"] = Content.Load<Texture2D>("traffic/cars_hor2");
             sprites["cars_ver_0"] = Content.Load<Texture2D>("traffic/cars_ver");
             sprites["cars_ver_1"] = Content.Load<Texture2D>("traffic/cars_ver2");
+
+
+            world.costs = XmlHandler.getCosts();
         }
 
         /// <summary>
@@ -179,8 +189,9 @@ namespace SimCityScope
             {
                 for (int y = (int)ymin; y <= ymax; ++y)
                 {
-                    if (world.grid[x, y].type == TileType.NONE)
-                        world.grid[x, y].type = type;
+                    //if (world.grid[x, y].type == TileType.NONE)
+                    //    world.grid[x, y].type = type;
+                    world.setTile(x, y, type);
                 }
             }
         }
@@ -243,7 +254,8 @@ namespace SimCityScope
                         UI.selectInterface(gs.Position.ToPoint());
 
                         if (pos == null) break;
-                        world.grid[(int)pos.Value.X, (int)pos.Value.Y].type = newTile;
+                        //world.grid[(int)pos.Value.X, (int)pos.Value.Y].type = newTile;
+                        world.setTile((int)pos.Value.X, (int)pos.Value.Y, newTile);
                         debugtext += "tap\n";
                         break;
                     case GestureType.DragComplete:
@@ -270,7 +282,9 @@ namespace SimCityScope
                         if (pos == null) break;
                         if (UI.state == InterfaceState.ROAD)
                         {
-                            world.grid[(int)pos.Value.X, (int)pos.Value.Y].type = newTile;
+                            //world.grid[(int)pos.Value.X, (int)pos.Value.Y].type = newTile;
+                            world.setTile((int)pos.Value.X, (int)pos.Value.Y, newTile);
+
                         }
                         else if (UI.state == InterfaceState.REMOVE)
                         {
@@ -299,7 +313,8 @@ namespace SimCityScope
                         boxZone(dragStart.Value, pos.Value.ToPoint(), newTile);
                     else // fill single tile
                         if(!menu.mouseInMenu())
-                            world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
+                        world.setTile((int)pos.Value.X, (int)pos.Value.Y, newTile);
+                        //world.grid[(int)pos?.X, (int)pos?.Y].type = newTile;
                 }
                 dragStart = null;
             }
@@ -317,7 +332,8 @@ namespace SimCityScope
                                 world.removeTile((int)pos?.X, (int)pos?.Y);
                                 break;
                             case InterfaceState.ROAD:
-                                world.grid[(int)pos?.X, (int)pos?.Y].type = TileType.ROAD;
+                                //world.grid[(int)pos?.X, (int)pos?.Y].type = TileType.ROAD;
+                                world.setTile((int)pos.Value.X, (int)pos.Value.Y, TileType.ROAD);
                                 break;
                         }
 
@@ -436,7 +452,8 @@ namespace SimCityScope
             }
 
             // todo: draw stats, info, plots (passive UI)
-            // todo: treasury?
+            // treasury
+            spriteBatch.DrawString(font, world.bankAccount + "$", new Vector2(10,10), Color.White);
             // draw residential-commercial demand chart
             pos.Y += 20;
             pos.X += InterfaceElement.width / 2;

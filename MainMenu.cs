@@ -26,23 +26,21 @@ namespace SimCityScope
 
     class MainMenu
     {
-
-
         int width = 200;
         int height = 100;   // todo: make size depend on elements.count?
 
         float slidePos;
-        int maxSlideSpeed = 100;  // in px/s
         int curSlideSpeed = 0;  // in px/s
+        int maxSlideSpeed = 150;  // in px/s
 
         bool alignCenter = true;
         int topMargin = 20;
         int leftMargin = 10;
         int spacing = 30;
+        
         List<MenuElement> elements;
 
         Game1 game;
-
         MouseState prevMouse;
 
         public MainMenu(Game1 game)
@@ -53,6 +51,7 @@ namespace SimCityScope
             elements = new List<MenuElement>();
 
             elements.Add(new MenuElement("TABULA RASA", game.world.eraseAll));
+            elements.Add(new MenuElement("END", game.Exit));
             elements.Add(new MenuElement("BACK", startSlide));
         }
 
@@ -128,7 +127,10 @@ namespace SimCityScope
             for (int i = 0; i < elements.Count; ++i)
             {
                 if (elements[i].name != "")
-                    game.spriteBatch.DrawString(game.font, elements[i].name, pos.ToVector2() - (alignCenter ? game.font.MeasureString(elements[i].name) / 2 : Vector2.Zero), Color.White);// factor in element width
+                    game.spriteBatch.DrawString(game.font, 
+                                                elements[i].name, 
+                                                pos.ToVector2() - (alignCenter ? game.font.MeasureString(elements[i].name) / 2 : Vector2.Zero), 
+                                                Color.Black);// factor in element width
                 pos.Y += spacing;
             }
         }

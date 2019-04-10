@@ -37,6 +37,9 @@ namespace SimCityScope
         int ecoGrowth = 2;
         int maxGrowthPerStep = 5;
 
+        public Dictionary<string, int> costs;
+        public int bankAccount;
+
         public World(int size)
         {
             grid = new Tile[size, size];
@@ -109,14 +112,43 @@ namespace SimCityScope
             return amountleft;
         }
 
+        public void setTile(int x, int y, TileType type)
+        {
+            if (grid[x, y].type == TileType.NONE || (type == TileType.ROAD && grid[x, y].value == 0 && grid[x,y].type != type))
+            {
+                grid[x, y].type = type;
+
+                switch (type)
+                {
+                    case TileType.COMM:
+                    case TileType.RES:
+                        bankAccount -= costs["cost_zoning"];
+                        break;
+                    case TileType.ROAD:
+                        bankAccount -= costs["cost_road"];
+                        break;
+                }
+            }
+        }
+
         public void removeTile(int x, int y)
         {
+            int cost = 0;
             if (grid[x, y].type == TileType.RES)
+            {
                 population -= grid[x, y].value;
-            if (grid[x, y].type == TileType.COMM)
+                cost = (grid[x, y].value > 0) ? costs["cost_remove_building"] : costs["cost_remove_zone"];
+            }
+            else if (grid[x, y].type == TileType.COMM)
+            {
                 jobs -= grid[x, y].value;
+                cost = (grid[x, y].value > 0) ? costs["cost_remove_building"] : costs["cost_remove_zone"];
+            }
+            else if(grid[x, y].type == TileType.ROAD)
+                cost = costs["cost_remove_road"];
             grid[x, y].value = 0;
             grid[x, y].type = TileType.NONE;
+            bankAccount -= cost;
         }
 
         bool checkVicinity(Point pos, TileType check, int range)

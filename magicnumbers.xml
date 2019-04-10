@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<numbers>
+  <costs>
+    <cost_zoning>10</cost_zoning>
+    <cost_road>20</cost_road>
+    <cost_remove_zone>10</cost_remove_zone>
+    <cost_remove_road>15</cost_remove_road>
+    <cost_remove_building>30</cost_remove_building>
+  </costs>
+</numbers>
