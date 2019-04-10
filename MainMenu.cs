@@ -52,6 +52,7 @@ namespace SimCityScope
 
             elements = new List<MenuElement>();
 
+            elements.Add(new MenuElement("TABULA RASA", game.world.eraseAll));
             elements.Add(new MenuElement("BACK", startSlide));
         }
 
@@ -109,7 +110,7 @@ namespace SimCityScope
                     idx = i;
                     break;
                 }
-                pos.Y += spacing;
+                p.Y += spacing;
             }
 
             if (idx == -1) return;  // nothing hit

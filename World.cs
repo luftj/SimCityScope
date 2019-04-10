@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SimCityScope
 {
-    enum TileType
+    public enum TileType
     {
         NONE = 0,
         ROAD,
@@ -15,7 +15,7 @@ namespace SimCityScope
         RES,
     }
 
-    struct Tile
+    public struct Tile
     {
         public TileType type;
 
@@ -24,7 +24,7 @@ namespace SimCityScope
         public static int maxVal { get; } = 30;
     }
 
-    class World
+    public class World
     {
         public int size;   // number of tiles in each dimension
         public int tilesize = 30;   // width/height of tiles in px
@@ -52,14 +52,14 @@ namespace SimCityScope
             // growth scenarios
             var vacancies = jobs - population;  // todo: either one has to come from somewhere...
             if (vacancies > 0)
-                growTile(TileType.RES, MathHelper.Min(vacancies,maxGrowthPerStep));
+                growTile(TileType.RES, MathHelper.Min(vacancies, maxGrowthPerStep));
             else if (vacancies < 0)
                 jobDemand = growTile(TileType.COMM, MathHelper.Min(-vacancies, maxGrowthPerStep));
 
             // update traffic
             List<Point> relevantTiles = new List<Point>();
-            for (var x = 1; x < size-1; ++x)
-                for (var y = 1; y < size-1; ++y)
+            for (var x = 1; x < size - 1; ++x)
+                for (var y = 1; y < size - 1; ++y)
                 {
                     if (grid[x, y].type == TileType.ROAD)    // pick relevant type
                     {
@@ -122,12 +122,19 @@ namespace SimCityScope
         bool checkVicinity(Point pos, TileType check, int range)
         {
             // todo: proper manhattan distance
-            for (var x = MathHelper.Max(pos.X - range, 0); x < MathHelper.Min(pos.X + range +1, size); ++x)
-                for (var y = MathHelper.Max(pos.Y - range, 0); y < MathHelper.Min(pos.Y + range+1, size); ++y)
+            for (var x = MathHelper.Max(pos.X - range, 0); x < MathHelper.Min(pos.X + range + 1, size); ++x)
+                for (var y = MathHelper.Max(pos.Y - range, 0); y < MathHelper.Min(pos.Y + range + 1, size); ++y)
                 {
                     if (grid[x, y].type == check) return true;
                 }
             return false;
+        }
+
+        public void eraseAll()
+        {
+            grid = new Tile[size, size];
+            population = 0;
+            jobs = 10;
         }
     }
 }

@@ -11,7 +11,7 @@ namespace SimCityScope
     /// </summary>
     public class Game1 : Game
     {
-        World world;
+        public World world;
 
         #region TIME
         bool running = true;
@@ -53,7 +53,6 @@ namespace SimCityScope
 
             sprites = new Dictionary<string, Texture2D>();
 
-            menu = new MainMenu(this);
         }
 
         void toggleFullscreen()
@@ -99,6 +98,7 @@ namespace SimCityScope
 
             UI = new Interface(this);
 
+            menu = new MainMenu(this);
             base.Initialize();
         }
 

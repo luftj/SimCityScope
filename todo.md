@@ -2,6 +2,7 @@
 
 General
 - [ ] write sensible readme
+- [ ] restrict access modifiers
 
 View
 - [ ] residential/commercial demand chart
