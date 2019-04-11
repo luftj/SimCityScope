@@ -12,7 +12,7 @@ namespace SimCityScope
         public static Dictionary<string, int> getCosts()
         {
             XmlDocument doc = new XmlDocument();
-            doc.Load("../../../../magicnumbers.xml");   // todo: NONONONONO!!
+            doc.Load("./magicnumbers.xml");   // file gets copied to binary dir (see project settings)
 
             Dictionary<string, int> costs = new Dictionary<string, int>();
 
