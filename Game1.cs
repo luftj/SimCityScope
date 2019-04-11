@@ -43,6 +43,7 @@ namespace SimCityScope
         #endregion
 
         string debugtext = "";
+        string debugtextpersist = "";
 
         public Game1()
         {
@@ -93,7 +94,7 @@ namespace SimCityScope
 
             this.IsMouseVisible = true;
 
-            TouchPanel.EnabledGestures = GestureType.FreeDrag | GestureType.Tap | GestureType.Pinch | GestureType.DragComplete;
+            TouchPanel.EnabledGestures = GestureType.FreeDrag | GestureType.Tap | GestureType.Pinch | GestureType.DragComplete | GestureType.Flick;
 
             world = new World(100);
             world.bankAccount = 2000;
@@ -237,6 +238,8 @@ namespace SimCityScope
             #region touch_input
             // touch interaction
             // get any gestures that are ready.
+            bool dragHandled = false;
+            bool wantflick = false;
             while (TouchPanel.IsGestureAvailable)
             {
                 GestureSample gs = TouchPanel.ReadGesture();
@@ -271,6 +274,7 @@ namespace SimCityScope
                         var move = (delta + delta2) / 2;  // average of 2-finger-drag
                         camOffset += move;
                         debugtext += "pinch\n";
+                        dragHandled = true;
                         break;
                     case GestureType.FreeDrag:
                         // happens multiple times _during_ a drag. 
@@ -287,11 +291,21 @@ namespace SimCityScope
                             world.removeTile((int)pos.Value.X, (int)pos.Value.Y);
                         }
                         break;
+                    case GestureType.Flick:
+                        wantflick = true;
+                        var delta22 = gs.Delta2;
+                        debugtextpersist = "flick: " + delta + ", " + delta22;
+                        break;
                     default:
                         // other gesture happened
                         debugtext += "Unhandled gesture: " + gs.GestureType.ToString() + "\n";
                         break;
                 }
+            }
+
+            if (!dragHandled && wantflick)
+            {
+                menu.startSlide();
             }
             #endregion
 
@@ -473,6 +487,7 @@ namespace SimCityScope
 
             // draw debug output
             spriteBatch.DrawString(font, debugtext, Vector2.UnitY * (windowHeight - font.MeasureString(debugtext).Y), Color.White);
+            spriteBatch.DrawString(font, debugtextpersist, new Vector2(400,windowHeight - font.MeasureString(debugtext).Y), Color.White);
 
             menu.Draw(gameTime);
             spriteBatch.End();
