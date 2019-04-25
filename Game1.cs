@@ -2,7 +2,10 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
+using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 
 namespace SimCityScope
 {
@@ -28,8 +31,8 @@ namespace SimCityScope
 
         public Dictionary<string, Texture2D> sprites { get; private set; }
         public SpriteFont font;
-        public int windowWidth { get; private set; } = 800;
-        public int windowHeight { get; private set; } = 800;
+        public int windowWidth { get; private set; } = 1000;
+        public int windowHeight { get; private set; } = 1000;
         #endregion
 
         #region CONROL
@@ -45,6 +48,8 @@ namespace SimCityScope
         string debugtext = "";
         string debugtextpersist = "";
 
+        List<List<Vector2>> polys;        
+
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -56,6 +61,8 @@ namespace SimCityScope
 
             sprites = new Dictionary<string, Texture2D>();
 
+
+            polys = new List<List<Vector2>>();
         }
 
         void toggleFullscreen()
@@ -116,7 +123,7 @@ namespace SimCityScope
             spriteBatch = new SpriteBatch(GraphicsDevice);
             GeometryDrawer.init(this);
 
-
+            #region contentmanager
             // use this.Content to load game content here
             font = Content.Load<SpriteFont>("testfont");
             sprites["remove"] = Content.Load<Texture2D>("bulldozer");
@@ -153,9 +160,12 @@ namespace SimCityScope
             sprites["cars_hor_1"] = Content.Load<Texture2D>("traffic/cars_hor2");
             sprites["cars_ver_0"] = Content.Load<Texture2D>("traffic/cars_ver");
             sprites["cars_ver_1"] = Content.Load<Texture2D>("traffic/cars_ver2");
+            #endregion
 
 
             world.costs = XmlHandler.getCosts();
+
+            polys = new GEOhandler().makePolys();
         }
 
         /// <summary>
@@ -489,6 +499,10 @@ namespace SimCityScope
             spriteBatch.DrawString(font, debugtext, Vector2.UnitY * (windowHeight - font.MeasureString(debugtext).Y), Color.White);
             spriteBatch.DrawString(font, debugtextpersist, new Vector2(400,windowHeight - font.MeasureString(debugtext).Y), Color.White);
 
+            foreach(var poly in polys)
+                for (int p = 0; p < poly.Count - 1; ++p)
+                    GeometryDrawer.drawLine(worldToScreen(poly[p]),worldToScreen(poly[p + 1]), Color.White);
+
             menu.Draw(gameTime);
             spriteBatch.End();
 
@@ -516,6 +530,11 @@ namespace SimCityScope
             if (x >= 0 && x < world.size && y >= 0 && y < world.size)
                 return new Vector2(x, y);
             else return null;
+        }
+
+        Vector2 worldToScreen(Vector2 worldPos)
+        {
+            return worldPos + camOffset;
         }
     }
 }

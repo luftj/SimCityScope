@@ -7,6 +7,7 @@ General
 View
 - [ ] residential/commercial demand chart
 - [X] visualise usage amount/growth
+- [ ] land/water tile drawing
 
 Control
 - [ ] input abstraction (to handle multiple modalities: mouse, touch, lego, ...)
@@ -25,6 +26,10 @@ Control
   - [X] anim: slide in from top of screen
 
 Model
+- [ ] land/water tile property
+  - [ ] get from map poly
+    - [ ] poly bounds checking
+  - [ ] bridges
 - [X] keep time (ticks)
 - [ ] money
   - [X] building/zoning cost per tile
@@ -47,6 +52,7 @@ Model
 - [ ] multi-tile structures (e.g. public offices, but also for variability in res/comm)
 
 Assets
+- [ ] bridges
 - [X] residential graphics
   - [X] growth stadii
   - [ ] diversity
